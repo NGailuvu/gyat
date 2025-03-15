@@ -6,6 +6,7 @@ local function setRandomJumpHeight(character)
     if humanoid then
         local randomHeight = math.random(50, 150)  -- Mengatur tinggi lompatan antara 50 hingga 150
         humanoid.JumpHeight = randomHeight
+        print("Jump height set to " .. randomHeight)  -- Debug log untuk memeriksa apakah ini berhasil
     end
 end
 
@@ -17,8 +18,10 @@ game.Players.PlayerAdded:Connect(function(player)
 
         -- Setel ulang tinggi lompatan saat karakter melompat
         local humanoid = character:WaitForChild("Humanoid")
-        humanoid.Jumping:Connect(function()
-            setRandomJumpHeight(character)
+        humanoid.StateChanged:Connect(function(_, newState)
+            if newState == Enum.HumanoidStateType.Physics then
+                setRandomJumpHeight(character)  -- Jika karakter dalam keadaan lompat (Physics)
+            end
         end)
 
         -- Menangani saat karakter mati
