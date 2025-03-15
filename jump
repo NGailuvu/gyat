@@ -1,0 +1,29 @@
+-- Skrip ini akan membuat lompatan karakter dengan tinggi acak di Workspace
+
+local function setRandomJumpHeight(character)
+    -- Pastikan karakter memiliki Humanoid
+    local humanoid = character:FindFirstChild("Humanoid")
+    if humanoid then
+        local randomHeight = math.random(50, 150)  -- Mengatur tinggi lompatan antara 50 hingga 150
+        humanoid.JumpHeight = randomHeight
+    end
+end
+
+-- Fungsi untuk menangani karakter baru yang dimasukkan ke dalam permainan
+game.Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(function(character)
+        -- Setel tinggi lompatan setiap kali karakter baru dimuat
+        setRandomJumpHeight(character)
+
+        -- Setel ulang tinggi lompatan saat karakter melompat
+        local humanoid = character:WaitForChild("Humanoid")
+        humanoid.Jumping:Connect(function()
+            setRandomJumpHeight(character)
+        end)
+
+        -- Menangani saat karakter mati
+        humanoid.Died:Connect(function()
+            setRandomJumpHeight(character)  -- Setel tinggi lompatan kembali setelah karakter mati
+        end)
+    end)
+end)
