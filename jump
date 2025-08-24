@@ -1,32 +1,98 @@
--- Skrip ini akan membuat lompatan karakter dengan tinggi acak di Workspace
+-- Reverse Flash Mirage (hold key to keep miraging)
+-- LocalScript, taruh di StarterPlayerScripts
 
-local function setRandomJumpHeight(character)
-    -- Pastikan karakter memiliki Humanoid
-    local humanoid = character:FindFirstChild("Humanoid")
-    if humanoid then
-        local randomHeight = math.random(50, 150)  -- Mengatur tinggi lompatan antara 50 hingga 150
-        humanoid.JumpHeight = randomHeight
-        print("Jump height set to " .. randomHeight)  -- Debug log untuk memeriksa apakah ini berhasil
-    end
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local miraging = false
+local START_DISTANCE = 3    -- jarak awal
+local MAX_DISTANCE = 12     -- jarak maksimal
+local STEP = 0.2            -- seberapa cepat nambah jarak
+local SPEED = 0.08          -- kecepatan mirage (semakin kecil semakin cepat)
+
+local cloneModel = nil
+
+-- ambil HumanoidRootPart
+local function getRoot()
+	local char = player.Character
+	if not char then return end
+	return char:FindFirstChild("HumanoidRootPart")
 end
 
--- Fungsi untuk menangani karakter baru yang dimasukkan ke dalam permainan
-game.Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function(character)
-        -- Setel tinggi lompatan setiap kali karakter baru dimuat
-        setRandomJumpHeight(character)
+-- buat clone bayangan
+local function makeClone()
+	local char = player.Character
+	if not char then return end
+	local clone = char:Clone()
+	for _, part in ipairs(clone:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Anchored = true
+			part.CanCollide = false
+			part.Transparency = 0.3
+		elseif part:IsA("Humanoid") then
+			part:Destroy()
+		end
+	end
+	clone.Parent = workspace
+	return clone
+end
 
-        -- Setel ulang tinggi lompatan saat karakter melompat
-        local humanoid = character:WaitForChild("Humanoid")
-        humanoid.StateChanged:Connect(function(_, newState)
-            if newState == Enum.HumanoidStateType.Physics then
-                setRandomJumpHeight(character)  -- Jika karakter dalam keadaan lompat (Physics)
-            end
-        end)
+-- loop mirage
+local function startMirage()
+	if miraging then return end
+	miraging = true
 
-        -- Menangani saat karakter mati
-        humanoid.Died:Connect(function()
-            setRandomJumpHeight(character)  -- Setel tinggi lompatan kembali setelah karakter mati
-        end)
-    end)
+	local root = getRoot()
+	if not root then return end
+
+	cloneModel = makeClone()
+	if not cloneModel then
+		miraging = false
+		return
+	end
+
+	local toggle = true
+	local currentDistance = START_DISTANCE
+
+	while miraging and root and cloneModel do
+		-- jarak bertambah seiring waktu
+		if currentDistance < MAX_DISTANCE then
+			currentDistance = math.min(currentDistance + STEP, MAX_DISTANCE)
+		end
+
+		if toggle then
+			cloneModel:SetPrimaryPartCFrame(root.CFrame * CFrame.new(currentDistance, 0, 0))
+		else
+			cloneModel:SetPrimaryPartCFrame(root.CFrame * CFrame.new(-currentDistance, 0, 0))
+		end
+
+		toggle = not toggle
+		task.wait(SPEED)
+	end
+
+	-- setelah lepas tombol, hapus clone
+	if cloneModel then
+		cloneModel:Destroy()
+		cloneModel = nil
+	end
+end
+
+-- stop mirage
+local function stopMirage()
+	miraging = false
+end
+
+-- input handler
+UIS.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if input.KeyCode == Enum.KeyCode.C then
+		startMirage()
+	end
+end)
+
+UIS.InputEnded:Connect(function(input, gpe)
+	if input.KeyCode == Enum.KeyCode.C then
+		stopMirage()
+	end
 end)
